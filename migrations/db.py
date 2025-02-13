@@ -2,6 +2,7 @@ import psycopg2
 
 from utils import hash_password
 
+
 db_info = {
     'host': 'localhost',
     'user': 'postgres',
@@ -59,6 +60,9 @@ def init():
     create_user_table()
     create_todo_table()
 
+
 # init()
 
 # insert_user_admin()
+
+

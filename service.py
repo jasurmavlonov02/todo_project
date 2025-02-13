@@ -1,9 +1,20 @@
 from migrations.db import cur, commit
+
 from sessions import Session
-from utils import Response, match_password
-from models import User
+from utils import Response, match_password, hash_password
+from models import User, Todo
 
 session = Session()
+
+
+def login_required(func):
+    def wrapper(*args, **kwargs):
+        if not session.session:
+            raise Exception('User not authenticated')
+        result = func(*args, **kwargs)
+        return result
+
+    return wrapper
 
 
 @commit
@@ -25,5 +36,36 @@ def login(username: str, password: str) -> Response:
     return Response('Login successful', status_code=200)
 
 
-response = login('admin', '1234')
-print(response.message)
+@commit
+def register(username, password):
+    get_user_by_username = '''select * from users where username = %s;'''
+    cur.execute(get_user_by_username, (username,))
+    user_data = cur.fetchone()
+    if user_data is not None:
+        return Response(message=f'This {username} already exists', status_code=400)
+
+    user = User(username=username, password=password)
+    user.save()
+    return Response('User successfully created', status_code=201)
+
+
+def logout():
+    if session.session:
+        session.session = None
+        return Response(message='Logged out', status_code=200)
+    return Response(message='You must login first', status_code=404)
+
+
+@commit
+@login_required
+def todo_add(title: str):
+    user: User = session.check_session()
+    if user.role != 'admin':
+        return Response(message='Adding todo must be an admin', status_code=401)
+    todo = Todo(title=title, user_id=user.id)
+    todo.save()
+    return Response(message='Todo added', status_code=201)
+
+
+def set_admin():
+    pass

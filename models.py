@@ -1,5 +1,7 @@
 from datetime import datetime
 from enum import Enum
+from migrations.db import cur
+from utils import hash_password
 
 
 class UserRole(Enum):
@@ -40,6 +42,11 @@ class User:
             created_at=args[5]
         )
 
+    def save(self):
+        create_user_query = '''insert into users(username,password)
+        values (%s,%s);'''
+        cur.execute(create_user_query, (self.username, hash_password(self.password)))
+
 
 class Todo:
     def __init__(self,
@@ -56,3 +63,8 @@ class Todo:
         self.description = description
         self.todo_type = todo_type or TodoType.LOW.value
         self.created_at = created_at or datetime.now()
+
+    def save(self):
+        create_todo_query = '''insert into todos(title,user_id)
+        values (%s,%s);'''
+        cur.execute(create_todo_query, (self.title, self.user_id))
